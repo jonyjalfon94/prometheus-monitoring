@@ -66,3 +66,6 @@ volumes:
   grafana_data:
 networks:
   monitoring:
+  host:
+    external:
+      name: "host"
