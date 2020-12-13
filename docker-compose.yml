@@ -43,7 +43,6 @@ services:
       - 9114
     networks:
      - "monitoring"
-     - "host"
   grafana:
     image: "grafana/grafana:7.3.5"
     container_name: grafana
@@ -66,6 +65,3 @@ volumes:
   grafana_data:
 networks:
   monitoring:
-  host:
-    external:
-      name: "host"
