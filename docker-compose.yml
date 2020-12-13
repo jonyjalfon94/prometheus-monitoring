@@ -34,8 +34,9 @@ services:
       - 9100
     networks:
      - "monitoring"
-  elasticsearch_exporter:
+  elasticsearch-exporter:
     image: justwatch/elasticsearch_exporter:1.1.0
+    container_name: esexporter
     command:
      - '--es.uri=http://host.docker.internal:9200'
     restart: unless-stopped
