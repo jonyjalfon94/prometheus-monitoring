@@ -3,7 +3,7 @@ services:
   prometheus:
     image: "prom/prometheus:v2.23.0"
     container_name: prometheus
-    # REPLACE LOCALHOST WITH THE SERVER IP IF YOU WILL ACCESS IT FROM ANOTHER SERVER
+    # replace with ip or dns of the server
     hostname: linuxacademy11c.mylabserver.com
     restart: unless-stopped
     mem_limit: 4G
@@ -17,7 +17,7 @@ services:
     networks:
       - "monitoring"
   node-exporter:
-    image: prom/node-exporter:v0.18.1
+    image: prom/node-exporter:v1.0.1
     container_name: nodeexporter
     user: root
     privileged: true
@@ -60,7 +60,6 @@ services:
       - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource,grafana-piechart-panel,novalabs-annotations-panel,vonage-status-panel,fetzerch-sunandmoon-datasource,natel-discrete-panel,natel-influx-admin-panel
       # YOU CAN CHANGE THE ADMIN PASSWORD USING THIS VARIABLE
       - GF_SECURITY_ADMIN_PASSWORD=admin
-  
 volumes:
   prometheus_data:
   grafana_data:
