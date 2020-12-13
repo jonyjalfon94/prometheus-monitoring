@@ -34,6 +34,16 @@ services:
       - 9100
     networks:
      - "monitoring"
+  elasticsearch_exporter:
+    image: justwatch/elasticsearch_exporter:1.1.0
+    command:
+     - '--es.uri=http://host.docker.internal:9200'
+    restart: unless-stopped
+    expose:
+      - 9114
+    networks:
+     - "monitoring"
+     - "host"
   grafana:
     image: "grafana/grafana:7.3.5"
     container_name: grafana
@@ -50,6 +60,7 @@ services:
       - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource,grafana-piechart-panel,novalabs-annotations-panel,vonage-status-panel,fetzerch-sunandmoon-datasource,natel-discrete-panel,natel-influx-admin-panel
       # YOU CAN CHANGE THE ADMIN PASSWORD USING THIS VARIABLE
       - GF_SECURITY_ADMIN_PASSWORD=admin
+  
 volumes:
   prometheus_data:
   grafana_data:
