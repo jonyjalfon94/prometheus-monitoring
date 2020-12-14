@@ -43,7 +43,7 @@ services:
       - "./es-exporter/certs/:/certs"
     command:
      - '--es.uri=https://remote_monitoring_user:0a4031c2@linuxacademy11c.mylabserver.com:9091'
-     #- '--es.ca=/certs/rootca.pem'
+     - '--es.ca=/certs/rootca.pem'
     restart: unless-stopped
     expose:
       - 9114
