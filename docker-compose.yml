@@ -1,4 +1,4 @@
-version: '2.4'
+version: '3.8'
 services:
   prometheus:
     image: "prom/prometheus:v2.23.0"
@@ -37,6 +37,7 @@ services:
   elasticsearch-exporter:
     image: justwatch/elasticsearch_exporter:1.1.0
     container_name: esexporter
+    network_mode: host
     command:
      - '--es.uri=http://host.docker.internal:9200'
     restart: unless-stopped
