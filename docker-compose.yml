@@ -40,7 +40,7 @@ services:
     container_name: esexporter
     network_mode: host
     command:
-     - '--es.uri=http://linuxacademy11c.mylabserver.com:9091'
+     - '--es.uri=http://remote_monitoring_user:0a4031c2@linuxacademy11c.mylabserver.com:9091'
     restart: unless-stopped
     expose:
       - 9114
