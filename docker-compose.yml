@@ -43,7 +43,7 @@ services:
       - "./es-exporter/certs/:/certs"
     command:
      - '--es.uri=https://linuxacademy11c.mylabserver.com:9091'
-     - '--es.ca=/certs/rootca.pem'
+     - '--es.ca=/certs/client-ca.pem'
      - '--es.client-private-key=/certs/client-key.pem'
      - '--es.client-cert=/certs/client-cert.pem'
      - '--es.ssl-skip-verify'
