@@ -1,27 +1,47 @@
-version: '3.8'
+version: "3.8"
 services:
+#---------------------------------- Prometheus ----------------------------------
   prometheus:
     image: "prom/prometheus:v2.23.0"
     container_name: prometheus
     # replace with ip or dns of the server
-    hostname: linuxacademy11c.mylabserver.com
-    network_mode: host
-    extra_hosts:
-      - "nodeexporter:127.0.0.1"
-      - "esexporter:127.0.0.1"
+    hostname: "localhost"
     restart: unless-stopped
     mem_limit: 4G
     ports:
-      - "9090:9090"
+      - "9091:9090"
+    expose:
+      - "9091"
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
+      - "--config.file=/etc/prometheus/prometheus.yml"
     volumes:
       - "./prometheus/:/etc/prometheus/"
       - "prometheus_data:/prometheus"
+    networks:
+      monitoring:
+# ---------------------------------- Grafana ----------------------------------
+  grafana:
+    image: "grafana/grafana:7.3.5"
+    container_name: grafana
+    restart: unless-stopped
+    mem_limit: 4G
+    ports:
+      - "8081:3000"
+    expose:
+      - "8081"
+    volumes:
+      - "grafana_data:/var/lib/grafana"
+    environment:
+      # INSTALL SOME GRAFANA PLUGINS AUTOMATICALLY
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource,grafana-piechart-panel,novalabs-annotations-panel,vonage-status-panel,fetzerch-sunandmoon-datasource,natel-discrete-panel,natel-influx-admin-panel
+      # YOU CAN CHANGE THE ADMIN PASSWORD USING THIS VARIABLE
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      monitoring:
+# ---------------------------------- Node Exporter ----------------------------------      
   nodeexporter:
     image: prom/node-exporter:v1.0.1
     container_name: nodeexporter
-    network_mode: host
     user: root
     privileged: true
     volumes:
@@ -29,44 +49,114 @@ services:
       - /sys:/host/sys:ro
       - /:/rootfs:ro
     command:
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
-      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)"
     restart: unless-stopped
+    ports:
+      - 9101:9100
     expose:
-      - 9100
+      - 9101
+    networks:
+      monitoring:
+# ---------------------------------- Elasticsearch Exporter ----------------------------------
   esexporter:
     image: justwatch/elasticsearch_exporter:1.1.0
     container_name: esexporter
-    network_mode: host
     volumes:
       - "./es-exporter/certs/:/certs"
     command:
-     - '--es.uri=https://linuxacademy11c.mylabserver.com:9091'
-     - '--es.ca=/certs/client-ca.pem'
-     - '--es.client-private-key=/certs/client-key.pem'
-    # - '--es.client-cert=/certs/client-cert.pem'
-     - '--es.ssl-skip-verify'
+      - "--es.uri=https://od-elastic:9200"
+      - "--es.ca=/certs/root-ca.pem"
+      - "--es.client-private-key=/certs/client-key.pem"
+      - "--es.client-cert=/certs/client.pem"
+      - "--es.all"
+      - "--es.indices"
+      - "--es.clusterinfo.interval=1m"
+    #  - "--es.ssl-skip-verify"
     restart: unless-stopped
+    ports:
+      - 9114:9114
     expose:
       - 9114
-  grafana:
-    image: "grafana/grafana:7.3.5"
-    container_name: grafana
-    restart: unless-stopped
-    mem_limit: 4G
-    ports:
-      - "80:3000"
-    volumes:
-      - "grafana_data:/var/lib/grafana"
-    network_mode: host
-    extra_hosts:
-      - "prometheus:127.0.0.1"
+    networks:
+      monitoring:
+# ---------------------------------- Open Distro Elasticsearch ----------------------------------
+  od-elastic:
+    image: amazon/opendistro-for-elasticsearch:1.12.0
+    container_name: od-elastic
     environment:
-      # INSTALL SOME GRAFANA PLUGINS AUTOMATICALLY
-      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource,grafana-piechart-panel,novalabs-annotations-panel,vonage-status-panel,fetzerch-sunandmoon-datasource,natel-discrete-panel,natel-influx-admin-panel
-      # YOU CAN CHANGE THE ADMIN PASSWORD USING THIS VARIABLE
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - cluster.name=od-elastic-cluster
+      - node.name=od-elastic-node-1
+      - discovery.type=single-node
+      - network.host=0.0.0.0
+      - DISABLE_INSTALL_DEMO_CONFIG=true
+    volumes:
+      - od-elastic:/usr/share/elasticsearch/data
+      - ./od-elastic/custom-elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+      - ./od-elastic/certs:/usr/share/elasticsearch/config/certs
+      - ./od-elastic/security/internal_users.yml:/usr/share/elasticsearch/plugins/opendistro_security/securityconfig/internal_users.yml
+      - ./od-elastic/security/roles_mapping.yml:/usr/share/elasticsearch/plugins/opendistro_security/securityconfig/roles_mapping.yml
+      - ./od-elastic/security/tenants.yml:/usr/share/elasticsearch/plugins/opendistro_security/securityconfig/tenants.yml
+      - ./od-elastic/security/roles.yml:/usr/share/elasticsearch/plugins/opendistro_security/securityconfig/roles.yml
+      - ./od-elastic/security/config.yml:/usr/share/elasticsearch/plugins/opendistro_security/securityconfig/config.yml
+      - ./od-elastic/security/action_groups.yml:/usr/share/elasticsearch/plugins/opendistro_security/securityconfig/action_groups.yml
+    ports:
+      - 9200:9200
+      - 9600:9600 # required for Performance Analyzer
+    expose:
+      - "9200"
+    networks:
+      monitoring:
+# # ---------------------------------- Kibana ----------------------------------
+#   kibana:
+#     image: amazon/opendistro-for-elasticsearch-kibana:1.12.0
+#     container_name: od-kibana
+#     ports:
+#       - 5601:5601
+#     expose:
+#       - 5601
+#     environment:
+#       ELASTICSEARCH_URL: "https://od-elastic:9200"
+#       ELASTICSEARCH_HOSTS: "https://od-elastic:9200"
+#     networks:
+#       monitoring:
+# ---------------------------------- Zookeeper ----------------------------------
+  zookeeper:
+    image: wurstmeister/zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    networks:
+      monitoring:
+  
+# ---------------------------------- Kafka ----------------------------------
+  kafka:
+    build: ./kafka
+    container_name: kafka
+    links:
+     - zookeeper
+    ports:
+      - "9092:9092"
+      - "7071:7071"
+    expose:
+      - 9092
+      - 7071
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: kafka
+      KAFKA_ADVERTISED_PORT: 9092
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_OPTS: -javaagent:/usr/app/jmx_prometheus_javaagent.jar=7071:/usr/app/prom-jmx-agent-config.yml
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      monitoring:
+  
+# ---------------------------------- Volumes ----------------------------------
 volumes:
   prometheus_data:
   grafana_data:
+  od-elastic:
+# ---------------------------------- Networks ----------------------------------
+networks:
+  monitoring:
